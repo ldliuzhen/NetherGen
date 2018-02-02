@@ -1,8 +1,8 @@
 <?php
 
-namespace NetherGen\Main;
+namespace NetherGen;
 
-use NetherGen\generator\Nether;
+use NetherGen\generator\NetherGen;
 use pocketmine\plugin\PluginBase;
 use pocketmine\event\Listener;
 use pocketmine\block\Block;
@@ -24,7 +24,7 @@ class Main extends PluginBase implements Listener {
 	}
     /*指令用于测试*/
 	public function onCommand(CommandSender $sender, Command $cmd, $label, array $args): bool {
-		if($cmd->getName() = 'NetherGen'){
+		if(!$cmd->getName()){
 			$name = 'Nether';
 			$generator = Generator::getGenerator("地狱生成器");
 			$seed = $this->generateRandomSeed();   //调用自定义function—随机SEED
