@@ -28,11 +28,11 @@ use pocketmine\level\generator\biome\Biome;
 use pocketmine\level\generator\Generator;
 use pocketmine\level\generator\noise\Simplex;
 use NetherGen\generator\object\OreType;
-use NetherGen\generator\GroundFire;
+use NetherGen\generator\populator\GroundFire;
 use NetherGen\generator\populator\NetherGlowStone;
 use NetherGen\generator\populator\NetherLava;
 use NetherGen\generator\populator\NetherOre;
-use pocketmine\level\generator\populator\Populator;
+use NetherGen\generator\populator\Populator;
 use pocketmine\math\Vector3 as Vector3;
 use pocketmine\utils\Random;
 class NetherGen extends Generator {

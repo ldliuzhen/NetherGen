@@ -24,8 +24,8 @@ class Main extends PluginBase implements Listener {
 	}
     /*指令用于测试*/
 	public function onCommand(CommandSender $sender, Command $cmd, $label, array $args): bool {
-		if(!$cmd->getName()){
-			$name = 'Nether';
+		if($cmd->getName() == 'NetherGen'){
+			$name = 'nether';
 			$generator = Generator::getGenerator("地狱生成器");
 			$seed = $this->generateRandomSeed();   //调用自定义function—随机SEED
 			$options = [];
