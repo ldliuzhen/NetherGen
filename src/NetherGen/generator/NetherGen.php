@@ -135,7 +135,7 @@ class NetherGen extends Generator {
 		$chunk = $this->level->getChunk($chunkX, $chunkZ);
 		for($x = 0; $x < 16; ++$x){
 			for($z = 0; $z < 16; ++$z){
-				$biome = Biome::getBiome(Biome::HELL);
+				$biome = Biome::getBiome(Biome::HELL);				
 				$chunk->setBiomeId($x, $z, $biome->getId());
 				for($y = 0; $y < 128; ++$y){
 					if($y === 0 or $y === 127){

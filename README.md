@@ -1,2 +1,5 @@
 正在研发的Pocketmine-MP地狱生成器，主要参考对象:BetterGen
-适用于PMMP核心1.2后版本
+
+部分文件来源于Genisys与Pocketmine
+
+注意：地狱门需要点击传送质才能传送至地狱

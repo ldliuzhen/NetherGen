@@ -15,9 +15,8 @@ use pocketmine\block\Solid;
 use pocketmine\math\Vector3;
 use pocketmine\item\Item;
 use NetherGen\generator\block\Portal;
-use pocketmine\command\Command;       //用于测试
-use pocketmine\command\CommandSender;   //用于测试
-use pocketmine\command\ConsoleCommandSender;  //用于测试
+use pocketmine\event\block\BlockBreakEvent;
+use pocketmine\block\Air;
 
 class Main extends PluginBase implements Listener {
 	
@@ -34,22 +33,22 @@ class Main extends PluginBase implements Listener {
 		@mkdir($this->getDataFolder());
 		$this->Config = new Config($this->getDataFolder() . 'Config.yml',Config::YAML,['是否启用地狱门' => '是']);
 		$netherEnabled = $this->Config->get('是否启用地狱门');
-	}
-    /*指令用于测试*/
-	public function onCommand(CommandSender $sender, Command $cmd, $label, array $args): bool {
-		if($cmd->getName() == 'NetherGen'){
-			$name = 'nether';
-			$generator = Generator::getGenerator("地狱生成器");
-			$seed = $this->generateRandomSeed();   //调用自定义function—随机SEED
-			$options = [];
-			$options["preset"] = json_encode($options);      //作用未知，来自BetterGen(未改动)
-			if ((int)$seed == 0/*String*/) {
-				$seed = $this->generateRandomSeed();
-			}
-			$this->getServer()->generateLevel($name, $seed, $generator, $options);
-			$this->getServer()->loadLevel($name);
-			return true;
+		if($netherEnabled == '是'){
+			$this->NetherLoad();
 		}
+	}
+	
+	public function NetherLoad(){     //自定义地狱加载器
+		$name = 'nether';
+		$generator = Generator::getGenerator("地狱生成器");
+		$seed = $this->generateRandomSeed();   //调用自定义function—随机SEED
+		$options = [];
+		$options["preset"] = json_encode($options);      //作用未知，来自BetterGen(未改动)
+		if ((int)$seed == 0/*String*/) {
+			$seed = $this->generateRandomSeed();
+		}
+		$this->getServer()->generateLevel($name, $seed, $generator, $options);
+		$this->getServer()->loadLevel($name);
 		return true;
 	}
 
@@ -62,11 +61,93 @@ class Main extends PluginBase implements Listener {
 		$itemID = $event->getItem()->getID();			//获取玩家手持物品ID
 		$player = $event->getPlayer();
 		$block = $event->getBlock();
+		$blockID = $block->getID();
 		$face = $event->getFace();
 		$clickPos = $event->getTouchVector();
+		$netherEnabled = $this->Config->get('是否启用地狱门');
 		if($itemID == 259){
 			$this->onActivate($item,$block,$block,$face,$clickPos,$player);		//调用地狱门算法
 		}
+		if($blockID == 90 and $netherEnabled == '是'){			//当玩家触摸地狱门则传送
+			$level = $player->getLevel();
+			$levelname = $level->getName();
+			$num = 0;
+			for($i = 0; $i <= 6; $i++){
+				if($block->getSide($i)->getId() == 49){		//判断周围是否存在黑曜石
+					$num = $num + 1;
+				}
+			}
+			if($num >= 2 && $levelname != 'nether'){		//当地狱门附近存在黑曜石时
+				$player->teleport(\pocketmine\level\Position::fromObject($player, $this->getServer()->getLevelByName('nether')));
+			}
+			if($num >= 2 && $levelname == 'nether'){		//当地狱门附近存在黑曜石时
+				$player->teleport(\pocketmine\level\Position::fromObject($player, $this->getServer()->getLevelByName('world')));
+			}
+		}
+	}
+	
+	public function onBlockBreak(BlockBreakEvent $event){
+		$item = $event->getItem();
+		$player = $event->getPlayer();
+		$Eblock = $event->getBlock();
+		$blockid = $event->getBlock()->getID();
+		if($blockid == 49){
+			$this->ObsidianBreak($item,$player,$Eblock);
+		}
+	}
+	
+	public function ObsidianBreak(Item $item, Player $player,Block $Eblock){        //黑曜石破坏算法
+		$netherEnabled = $this->Config->get('是否启用地狱门');
+		if($netherEnabled == '是'){
+			for($i = 0; $i <= 6; $i++){
+				if($Eblock->getSide($i)->getId() == 90){		//判断周围是否存在地狱门传送质
+					break;
+				}
+				if($i == 6){
+					return true;
+				}
+			}
+			$block = $Eblock->getSide($i);
+			$this->temporalVector = new Vector3(0, 0, 0);
+			if($player->getLevel()->getBlock($this->temporalVector->setComponents($block->x - 1, $block->y, $block->z))->getId() == Block::PORTAL or
+				$player->getLevel()->getBlock($this->temporalVector->setComponents($block->x + 1, $block->y, $block->z))->getId() == Block::PORTAL
+			){//x方向
+				for($x = $block->x; $player->getLevel()->getBlock($this->temporalVector->setComponents($x, $block->y, $block->z))->getId() == Block::PORTAL; $x++){
+					for($y = $block->y; $player->getLevel()->getBlock($this->temporalVector->setComponents($x, $y, $block->z))->getId() == Block::PORTAL; $y++){
+						$player->getLevel()->setBlock($this->temporalVector->setComponents($x, $y, $block->z), new Air());
+					}
+					for($y = $block->y - 1; $player->getLevel()->getBlock($this->temporalVector->setComponents($x, $y, $block->z))->getId() == Block::PORTAL; $y--){
+						$player->getLevel()->setBlock($this->temporalVector->setComponents($x, $y, $block->z), new Air());
+					}
+				}
+				for($x = $block->x - 1; $player->getLevel()->getBlock($this->temporalVector->setComponents($x, $block->y, $block->z))->getId() == Block::PORTAL; $x--){
+					for($y = $block->y; $player->getLevel()->getBlock($this->temporalVector->setComponents($x, $y, $block->z))->getId() == Block::PORTAL; $y++){
+						$player->getLevel()->setBlock($this->temporalVector->setComponents($x, $y, $block->z), new Air());
+					}
+					for($y = $block->y - 1; $player->getLevel()->getBlock($this->temporalVector->setComponents($x, $y, $block->z))->getId() == Block::PORTAL; $y--){
+						$player->getLevel()->setBlock($this->temporalVector->setComponents($x, $y, $block->z), new Air());
+					}
+				}
+			}else{//z方向
+				for($z = $block->z; $player->getLevel()->getBlock($this->temporalVector->setComponents($block->x, $block->y, $z))->getId() == Block::PORTAL; $z++){
+					for($y = $block->y; $player->getLevel()->getBlock($this->temporalVector->setComponents($block->x, $y, $z))->getId() == Block::PORTAL; $y++){
+						$player->getLevel()->setBlock($this->temporalVector->setComponents($block->x, $y, $z), new Air());
+					}
+					for($y = $block->y - 1; $player->getLevel()->getBlock($this->temporalVector->setComponents($block->x, $y, $z))->getId() == Block::PORTAL; $y--){
+						$player->getLevel()->setBlock($this->temporalVector->setComponents($block->x, $y, $z), new Air());
+					}
+				}
+				for($z = $block->z - 1; $player->getLevel()->getBlock($this->temporalVector->setComponents($block->x, $block->y, $z))->getId() == Block::PORTAL; $z--){
+					for($y = $block->y; $player->getLevel()->getBlock($this->temporalVector->setComponents($block->x, $y, $z))->getId() == Block::PORTAL; $y++){
+						$player->getLevel()->setBlock($this->temporalVector->setComponents($block->x, $y, $z), new Air());
+					}
+					for($y = $block->y - 1; $player->getLevel()->getBlock($this->temporalVector->setComponents($block->x, $y, $z))->getId() == Block::PORTAL; $y--){
+						$player->getLevel()->setBlock($this->temporalVector->setComponents($block->x, $y, $z), new Air());
+					}
+				}
+			}
+		}
+		return true;
 	}
 	
 	public function onActivate(Item $item, Block $blockReplace, Block $blockClicked, int $face, Vector3 $clickPos, Player $player) : bool{         //地狱门算法
@@ -157,6 +238,5 @@ class Main extends PluginBase implements Listener {
 		}
 		return false;
 	}
-	
 	
 }
