@@ -8,4 +8,4 @@ R & D in Pocketmine-MP Nether Generator，The main reference object：BetterGen
 
 Part of the file from Genisys and Pocketmine.
 
-Attention: Nether Door need click Transmission Material to teloTeleport Nether
+Attention: Nether Door need click Transmission Material to Teleport Nether
